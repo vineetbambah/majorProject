@@ -6,10 +6,8 @@ import os
 def worker(rank, left_conn, right_conn, world_size):
     torch.manual_seed(0)
 
-    # Simple model: y = wx
     model = nn.Linear(1, 1, bias=False)
 
-    # Fake data (different per rank)
     x = torch.tensor([[rank + 1.0]])
     y = torch.tensor([[2.0]])
 
