@@ -4,9 +4,9 @@
     teardown = close/free resources """
 
 
-def _setup_worker(config: dict) -> dict:
+def _setup_distributed(config: dict) -> dict:
     return {
-        "mode": "worker",
+        "mode": "distributed",
         "rank": config["rank"],
         "world_size": config["world_size"],
         "transport": "socket",
@@ -17,10 +17,10 @@ def setup(config: dict):
     mode = config["mode"]
 
     print(f"[ring.setup] mode={mode}, rank={config.get('rank')}, world_size={config.get('world_size')}", flush=True)
-    if mode == "worker":
-        return _setup_worker(config)
+    if mode == "distributed":
+        return _setup_distributed(config)
 
-    #raise ValueError("mode must be one of: local, worker")
+    #raise ValueError("mode must be one of: local, distributed")
 
 
 def average(local_grad, comm_ctx, config: dict):
