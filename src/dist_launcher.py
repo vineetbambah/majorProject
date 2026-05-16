@@ -121,26 +121,35 @@ def build_distributed_topology(algo, rank):
         right_ip = config["ip_list"][(rank + 1) % config["world_size"]]
         listener = create_socket()
         listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        print(f"[rank {rank}] binding {local_ip}:{base_port}", flush=True)
-        listener.bind((local_ip, base_port))
-        print(f"[rank {rank}] listening on {local_ip}:{base_port}", flush=True)
+        print(f"[dist_launcher] rank={rank} binding {local_ip}:{local_port}", flush=True)
+        listener.bind((local_ip, local_port))
+        print(f"[dist_launcher] rank={rank} listening on {local_ip}:{local_port}", flush=True)
         listener.listen(1)
 
         right_conn = create_socket()
+        right_port = base_port + ((rank + 1) % config["world_size"])
+        connect_timeout = float(config.get("connect_timeout", 10.0))
+        start_time = time.time()
         while True:
             try:
-                print(f"[rank {rank}] connecting to {right_ip}:{base_port}", flush=True)
-                right_conn.connect((right_ip, base_port))
+                print(f"[dist_launcher] rank={rank} attempting connect to {right_ip}:{right_port}", flush=True)
+                right_conn.connect((right_ip, right_port))
+                print(f"[dist_launcher] rank={rank} connected to {right_ip}:{right_port}", flush=True)
                 break
             except OSError as error:
+                if time.time() - start_time > connect_timeout:
+                    raise ConnectionError(
+                        f"rank={rank} failed to connect to {right_ip}:{right_port} after {connect_timeout}s: {error}"
+                    )
                 print(
-                    f"[rank {rank}] connect failed to {right_ip}:{base_port}: {error}",
+                    f"[dist_launcher] rank={rank} connect failed to {right_ip}:{right_port}: {error}; retrying",
                     flush=True,
                 )
                 time.sleep(0.2)
 
-        print(f"[rank {rank}] waiting for accept from {left_ip}:{base_port}", flush=True)
+        print(f"[dist_launcher] rank={rank} waiting to accept left connection on {local_ip}:{local_port}", flush=True)
         left_conn, _ = listener.accept()
+        print(f"[dist_launcher] rank={rank} accepted connection from left peer", flush=True)
         return {
             "left_endpoint": SocketEndpoint(left_conn, listener=listener, rank=rank, direction="left"),
             "right_endpoint": SocketEndpoint(right_conn, rank=rank, direction="right"),
