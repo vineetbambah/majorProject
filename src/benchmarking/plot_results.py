@@ -9,7 +9,7 @@ plt.rcParams['figure.figsize'] = (14, 7)
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python src/plot_results.py <aggregated.csv>")
+        print("Usage: python src/benchmarking/plot_results.py <aggregated.csv>")
         sys.exit(1)
     
     csv_path = sys.argv[1]

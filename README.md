@@ -1,10 +1,12 @@
 # Distributed Training Skeleton
 
-This project is a minimal distributed training skeleton.
+This project is a minimal distributed training skeleton with distributed execution only.
 
 Current design:
 - Main entrypoint: src/main_comm_runner.py
 - Shared config file: src/config.json
+- Timing and metrics utilities: src/metrics
+- Benchmark utilities: src/benchmarking
 - Model modules: src/models
 - Gradient sync modules: src/gradient_sync
 
@@ -12,7 +14,8 @@ Current design:
 
 - The runner loads configuration from src/config.json.
 - Each machine passes only rank through CLI.
-- The runner validates config and selects model and gradient modules.
+- The runner validates config, selects model and gradient modules, and launches the distributed path.
+- `mode` is fixed to `distributed`.
 
 ## Run
 

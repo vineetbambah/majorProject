@@ -28,27 +28,14 @@ def setup_distributed(config: dict) -> dict:
         "transport": "socket",
     }
 
-def setup_local(config: dict) -> dict:
-     return {
-            "mode": "local",
-            "rank": config["rank"],
-            "world_size": config["world_size"],
-            "left_endpoint": config.get("left_conn"),
-            "right_endpoint": config.get("right_conn"),
-            "transport": "pipe",
-        }
-
 
 def setup(config: dict) -> dict:
     mode = config["mode"]
 
-    if mode == "local":
-        return setup_local(config)
+    if mode != "distributed":
+        raise ValueError("mode must be distributed")
 
-    elif mode == "distributed":
-        return setup_distributed(config)
-
-    raise ValueError("mode must be one of: local, distributed")
+    return setup_distributed(config)
 
 
 def _normalize_tensor_grad(grad_tensor):

@@ -4,7 +4,7 @@ from pathlib import Path
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python src/read_results.py <aggregated.csv>")
+        print("Usage: python src/benchmarking/read_results.py <aggregated.csv>")
         sys.exit(1)
     
     csv_path = sys.argv[1]

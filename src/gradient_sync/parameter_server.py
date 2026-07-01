@@ -8,20 +8,6 @@
 import torch
 
 
-class _SocketEndpointPlaceholder:
-    def __init__(self, direction: str):
-        self.direction = direction
-
-    def send(self, _payload):
-        raise NotImplementedError(f"socket stream send not implemented yet ({self.direction})")
-
-    def recv(self):
-        raise NotImplementedError(f"socket stream recv not implemented yet ({self.direction})")
-
-    def close(self):
-        return None
-
-
 def setup_distributed(config: dict) -> dict:
     """Setup parameter server for distributed mode using socket endpoints."""
     rank = config["rank"]
@@ -59,45 +45,14 @@ def setup_distributed(config: dict) -> dict:
     }
 
 
-def setup_local(config: dict) -> dict:
-    """Setup parameter server for local mode using pipe endpoints."""
-    rank = config["rank"]
-    world_size = config["world_size"]
-    
-    is_server = (rank == 0)
-    
-    if is_server:
-        client_conns = {}
-        for client_rank in range(1, world_size):
-            conn_key = f"client_{client_rank}_conn"
-            if conn_key in config:
-                client_conns[conn_key] = config[conn_key]
-    else:
-        server_conn = config.get("server_conn")
-        if server_conn is None:
-            raise ValueError("parameter_server client requires server_conn in config")
-        client_conns = {"server_conn": server_conn}
-    
-    return {
-        "mode": "local",
-        "rank": rank,
-        "world_size": world_size,
-        "is_server": is_server,
-        "transport": "pipe",
-        **client_conns,
-    }
-
-
 def setup(config: dict) -> dict:
     """Initialize parameter server context."""
     mode = config.get("mode", "distributed")
-    
-    if mode == "local":
-        return setup_local(config)
-    elif mode == "distributed":
-        return setup_distributed(config)
-    else:
-        raise ValueError("mode must be one of: local, distributed")
+
+    if mode != "distributed":
+        raise ValueError("mode must be distributed")
+
+    return setup_distributed(config)
 
 
 def _normalize_tensor_grad(grad_tensor):
@@ -150,7 +105,7 @@ def average(local_grad, comm_ctx, config: dict):
         # Receive from all clients (ranks 1 to world_size-1)
         for client_rank in range(1, world_size):
             endpoint_key = f"client_{client_rank}_endpoint"
-            endpoint = comm_ctx.get(endpoint_key) or comm_ctx.get(f"client_{client_rank}_conn")
+            endpoint = comm_ctx.get(endpoint_key)
             
             if endpoint is not None:
                 try:
@@ -169,7 +124,7 @@ def average(local_grad, comm_ctx, config: dict):
         # Broadcast to all clients
         for client_rank in range(1, world_size):
             endpoint_key = f"client_{client_rank}_endpoint"
-            endpoint = comm_ctx.get(endpoint_key) or comm_ctx.get(f"client_{client_rank}_conn")
+            endpoint = comm_ctx.get(endpoint_key)
             
             if endpoint is not None:
                 try:
@@ -180,7 +135,7 @@ def average(local_grad, comm_ctx, config: dict):
                     print(f"[ps.average] rank={rank} server error sending to client {client_rank}: {e}", flush=True)
     else:
         # Client role: send local gradient to server, wait for averaged gradient
-        server_endpoint = comm_ctx.get("server_endpoint") or comm_ctx.get("server_conn")
+        server_endpoint = comm_ctx.get("server_endpoint")
         
         if server_endpoint is None:
             raise ValueError("parameter_server client missing server connection")
@@ -222,17 +177,7 @@ def teardown(comm_ctx) -> None:
     if is_server:
         # Close all client connections
         for client_rank in range(1, world_size):
-            for endpoint_key in [f"client_{client_rank}_endpoint", f"client_{client_rank}_conn"]:
-                endpoint = comm_ctx.get(endpoint_key)
-                if endpoint is None:
-                    continue
-                try:
-                    endpoint.close()
-                except OSError as error:
-                    print(f"[ps.teardown] warning: rank={rank} failed to close {endpoint_key}: {error}", flush=True)
-    else:
-        # Close server connection
-        for endpoint_key in ["server_endpoint", "server_conn"]:
+            endpoint_key = f"client_{client_rank}_endpoint"
             endpoint = comm_ctx.get(endpoint_key)
             if endpoint is None:
                 continue
@@ -240,6 +185,16 @@ def teardown(comm_ctx) -> None:
                 endpoint.close()
             except OSError as error:
                 print(f"[ps.teardown] warning: rank={rank} failed to close {endpoint_key}: {error}", flush=True)
+    else:
+        # Close server connection
+        endpoint_key = "server_endpoint"
+        endpoint = comm_ctx.get(endpoint_key)
+        if endpoint is None:
+            return
+        try:
+            endpoint.close()
+        except OSError as error:
+            print(f"[ps.teardown] warning: rank={rank} failed to close {endpoint_key}: {error}", flush=True)
     
     # Close listener if it exists
     listener = comm_ctx.get("_listener")

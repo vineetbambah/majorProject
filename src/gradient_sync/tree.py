@@ -45,38 +45,14 @@ def setup_distributed(config: dict) -> dict:
     }
 
 
-def setup_local(config: dict) -> dict:
-    """Setup tree for local mode using pipe endpoints."""
-    rank = config["rank"]
-    world_size = config["world_size"]
-    tree_structure = _build_binary_tree(rank, world_size)
-    
-    endpoints = {}
-    for child_type in ["left_child", "right_child", "parent"]:
-        endpoint_key = f"{child_type}_conn"
-        if tree_structure[child_type] is not None:
-            endpoints[endpoint_key] = config.get(endpoint_key)
-    
-    return {
-        "mode": "local",
-        "rank": rank,
-        "world_size": world_size,
-        "transport": "pipe",
-        "tree_structure": tree_structure,
-        **endpoints,
-    }
-
-
 def setup(config: dict) -> dict:
     """Initialize tree aggregation context."""
     mode = config.get("mode", "distributed")
-    
-    if mode == "local":
-        return setup_local(config)
-    elif mode == "distributed":
-        return setup_distributed(config)
-    else:
-        raise ValueError("mode must be one of: local, distributed")
+
+    if mode != "distributed":
+        raise ValueError("mode must be distributed")
+
+    return setup_distributed(config)
 
 
 def _normalize_tensor_grad(grad_tensor):
@@ -130,7 +106,7 @@ def average(local_grad, comm_ctx, config: dict):
     
     # Receive from children
     if left_child is not None:
-        left_endpoint = comm_ctx.get("left_child_endpoint") or comm_ctx.get("left_child_conn")
+        left_endpoint = comm_ctx.get("left_child_endpoint")
         if left_endpoint is not None:
             try:
                 left_grad = left_endpoint.recv()
@@ -143,7 +119,7 @@ def average(local_grad, comm_ctx, config: dict):
                 print(f"[tree.average] rank={rank} error receiving from left_child: {e}", flush=True)
     
     if right_child is not None:
-        right_endpoint = comm_ctx.get("right_child_endpoint") or comm_ctx.get("right_child_conn")
+        right_endpoint = comm_ctx.get("right_child_endpoint")
         if right_endpoint is not None:
             try:
                 right_grad = right_endpoint.recv()
@@ -158,7 +134,7 @@ def average(local_grad, comm_ctx, config: dict):
     # Send to parent
     parent = tree_structure.get("parent")
     if parent is not None:
-        parent_endpoint = comm_ctx.get("parent_endpoint") or comm_ctx.get("parent_conn")
+        parent_endpoint = comm_ctx.get("parent_endpoint")
         if parent_endpoint is not None:
             try:
                 parent_endpoint.send({"gradients": accumulated})
@@ -175,12 +151,12 @@ def average(local_grad, comm_ctx, config: dict):
                 print(f"[tree.average] rank={rank} broadcast_recv_from_parent={parent}", flush=True)
 
             if left_child is not None:
-                left_endpoint = comm_ctx.get("left_child_endpoint") or comm_ctx.get("left_child_conn")
+                left_endpoint = comm_ctx.get("left_child_endpoint")
                 if left_endpoint is not None:
                     left_endpoint.send({"gradients": averaged_tensor})
 
             if right_child is not None:
-                right_endpoint = comm_ctx.get("right_child_endpoint") or comm_ctx.get("right_child_conn")
+                right_endpoint = comm_ctx.get("right_child_endpoint")
                 if right_endpoint is not None:
                     right_endpoint.send({"gradients": averaged_tensor})
         except Exception as e:
@@ -191,7 +167,7 @@ def average(local_grad, comm_ctx, config: dict):
         averaged_tensor = accumulated / float(world_size)
         
         if left_child is not None:
-            left_endpoint = comm_ctx.get("left_child_endpoint") or comm_ctx.get("left_child_conn")
+            left_endpoint = comm_ctx.get("left_child_endpoint")
             if left_endpoint is not None:
                 try:
                     left_endpoint.send({"gradients": averaged_tensor})
@@ -201,7 +177,7 @@ def average(local_grad, comm_ctx, config: dict):
                     print(f"[tree.average] rank={rank} error sending to left_child: {e}", flush=True)
         
         if right_child is not None:
-            right_endpoint = comm_ctx.get("right_child_endpoint") or comm_ctx.get("right_child_conn")
+            right_endpoint = comm_ctx.get("right_child_endpoint")
             if right_endpoint is not None:
                 try:
                     right_endpoint.send({"gradients": averaged_tensor})

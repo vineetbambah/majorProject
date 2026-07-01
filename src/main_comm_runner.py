@@ -2,8 +2,7 @@ import argparse
 import json
 
 from dist_launcher import launch_distributed
-from local_launcher import launch_local
-from worker_runner import get_algo_module, get_model_module, run_worker
+from worker_runner import get_algo_module, get_model_module
 
 CONFIG_PATH = "config.json"
 
@@ -31,8 +30,8 @@ def validate_config(config: dict) -> None:
     if missing_keys:
         raise ValueError(f"Missing required config keys: {missing_keys}")
 
-    if config["mode"] not in {"local", "distributed"}:
-        raise ValueError("mode must be one of: local, distributed")
+    if config["mode"] != "distributed":
+        raise ValueError("mode must be distributed")
 
     if config["algo"] not in {"ring", "tree", "parameter_server"}:
         raise ValueError("algo must be one of: ring, tree, parameter_server")
@@ -64,16 +63,7 @@ def main() -> None:
     print(f"[runner] selected algorithm module: {algo_module.__name__}", flush=True)
     print(f"[runner] selected model module: {model_module.__name__}", flush=True)
 
-    if config["mode"] == "local":
-        if config["rank"] == 0:
-            launch_local(config)
-        return
-        
-    if config["mode"] == "distributed":
-        launch_distributed(config)
-        return
-
-    run_worker(config)
+    launch_distributed(config)
 
 
 if __name__ == "__main__":

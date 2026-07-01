@@ -1,7 +1,6 @@
 """Per-rank metrics collection and aggregation."""
 
 import json
-import torch
 from typing import Dict, List, Optional
 from pathlib import Path
 
@@ -219,18 +218,3 @@ class AggregatedMetrics:
             }
         
         return metrics_dict
-    
-    def to_dict(self) -> Dict:
-        """Convert to dictionary."""
-        return {
-            "world_size": self.world_size,
-            "num_ranks": len(self.rank_metrics),
-            "aggregated": self.aggregate_stats(),
-            "per_rank": {rank: metrics.to_dict() for rank, metrics in self.rank_metrics.items()}
-        }
-    
-    def save(self, filepath: Path) -> Path:
-        """Save aggregated metrics to JSON."""
-        with open(filepath, "w") as f:
-            json.dump(self.to_dict(), f, indent=2)
-        return filepath
