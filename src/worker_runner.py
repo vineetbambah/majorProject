@@ -1,11 +1,13 @@
 from gradient_sync import parameter_server, ring, tree
+import metrics
 from models import ann_model, cnn_model, rnn_model
 
 import torch
 import time
 from pathlib import Path
 
-from metrics.metrics_recorder import RankMetrics
+from metrics.rank_metrics import RankMetrics
+from metrics.step_metrics import StepMetrics
 
 
 def get_algo_module(algo_tag: str):
@@ -128,20 +130,27 @@ def run_worker(config):
 
                 optim_time = time.perf_counter() - start
 
-                metrics.record_step(
-                    epoch=epoch,
-                    step=step,
-                    compute_time=compute_time,
-                    sync_time=sync_time,
-                    optim_time=optim_time,
-                    grad_norm=grad_norm,
-                    loss=float(loss)
-                    if isinstance(loss, torch.Tensor)
-                    else loss,
-                    bytes_xferred=grad_size_bytes,
-                )
+                step_metrics = StepMetrics(
+                epoch=epoch,
+                step=step,
+                is_warmup=(epoch == 0 and step == 0),
 
-                print(
+                compute_time=compute_time,
+                sync_time=sync_time,
+                optim_time=optim_time,
+
+                loss=float(loss)
+                if isinstance(loss, torch.Tensor)
+                else loss,
+
+                grad_norm=grad_norm,
+
+                bytes_sent=grad_size_bytes,
+                bytes_received=grad_size_bytes,
+            )
+
+                metrics.add_step(step_metrics)
+            print(
                     f"[rank {rank}] "
                     f"epoch={epoch} "
                     f"step={step} "
@@ -159,7 +168,10 @@ def run_worker(config):
             algo_module.teardown(comm_ctx)
 
         metrics_path = metrics.save()
-        stats = metrics.get_statistics()
+        print(
+            f"[rank {rank}] metrics saved to {metrics_path}",
+            flush=True,
+        )
 
         print(
             f"[rank {rank}] teardown complete",
@@ -168,16 +180,5 @@ def run_worker(config):
 
         print(
             f"[rank {rank}] metrics: {metrics_path}",
-            flush=True,
-        )
-
-        print(
-            f"[rank {rank}] "
-            f"compute={stats['compute'].get('mean', 0):.4f}s "
-            f"(p95={stats['compute'].get('p95', 0):.4f}s) | "
-            f"sync={stats['sync'].get('mean', 0):.4f}s "
-            f"(p95={stats['sync'].get('p95', 0):.4f}s) | "
-            f"iter={stats['iter'].get('mean', 0):.4f}s "
-            f"(p95={stats['iter'].get('p95', 0):.4f}s)",
             flush=True,
         )

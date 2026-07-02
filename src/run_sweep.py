@@ -14,6 +14,9 @@ import json
 import subprocess
 import sys
 
+from metrics.rank_metrics import RankMetrics
+from metrics.summary import SummaryGenerator
+
 # ==========================================================
 # Benchmark Search Space
 # ==========================================================
@@ -84,8 +87,6 @@ def generate_experiments():
 
             "base_port": BASE_PORT,
             "connect_timeout": CONNECT_TIMEOUT,
-
-            "benchmark_results_dir": RESULTS_DIR,
             "ip_list": ["127.0.0.1"] * world_size,
         }
 
@@ -103,7 +104,8 @@ def prepare_experiment(experiment_number, config):
         parents=True,
         exist_ok=True,
     )
-
+    
+    config["benchmark_results_dir"] = str(experiment_dir)
     config_path = experiment_dir / "config.json"
 
     with open(config_path, "w", encoding="utf-8") as file_handle:
@@ -211,7 +213,31 @@ def main():
         )
 
         if run_experiment(experiment_dir):
-            successful += 1
+            config_path = experiment_dir / "config.json"
+
+            with open(config_path, "r") as file_handle:
+                    config = json.load(file_handle)
+
+            rank_metrics = []
+
+            for rank in range(config["world_size"]):
+
+                metrics_path = (
+                    experiment_dir
+                    / f"rank_{rank}_metrics.json"
+                )
+
+                rank_metrics.append(
+                    RankMetrics.load(metrics_path)
+                )
+
+            summary = SummaryGenerator(rank_metrics)
+
+            summary.save_summary(
+                experiment_dir / "summary.json"
+            )
+
+            successful += 1 
 
     print("\n===================================")
     print(f"Experiments : {total}")
