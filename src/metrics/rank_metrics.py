@@ -7,7 +7,7 @@ from .step_metrics import StepMetrics
 class RankMetrics:
     """
     Stores all metrics collected for a single worker (rank)
-    during one benchmark experiment.
+    during one benchmark experiment. 
     """
     def __init__(
         self,

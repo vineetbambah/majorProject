@@ -1,5 +1,4 @@
 """ANN model module for distributed training benchmarks."""
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -60,29 +59,16 @@ def build_model(config: dict):
     }
 
 
-def train_step(state, config: dict):
-    """Execute one Fashion-MNIST training step on synthetic data."""
+def train_step(state,batch, config: dict):
+    """Execute one Fashion-MNIST training step """
     model = state["model"]
     criterion = state["criterion"]
     device = state["device"]
-    lr = state["lr"]
-    rank = config.get("rank", 0)
-    epoch = config.get("current_epoch", 0)
-    step = config.get("step", 0)
 
-    # Generate rank-specific synthetic data: different data per rank enables real gradient averaging
-    # Seed includes rank and epoch for reproducibility while maintaining data diversity
-    data_seed = (
-        1000
-        + rank * 100000
-        + epoch * 1000
-        + step
-    )
-    torch.manual_seed(data_seed)
-    
-    batch_size = int(config.get("batch_size", 32))
-    x = torch.randn(batch_size, 28 * 28, dtype=torch.float32).to(device)
-    y = torch.randint(0, 10, (batch_size,), dtype=torch.long).to(device)
+    x, y = batch
+
+    x = x.view(x.size(0), -1).to(device)
+    y = y.to(device)
 
     model.zero_grad()
     logits = model(x)

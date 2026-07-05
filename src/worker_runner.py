@@ -1,5 +1,4 @@
 from gradient_sync import parameter_server, ring, tree
-import metrics
 from models import ann_model, cnn_model, rnn_model
 
 import torch
@@ -8,6 +7,7 @@ from pathlib import Path
 
 from metrics.rank_metrics import RankMetrics
 from metrics.step_metrics import StepMetrics
+from data.fashion_mnist import get_dataloader
 
 
 def get_algo_module(algo_tag: str):
@@ -67,6 +67,14 @@ def run_worker(config):
         comm_ctx = algo_module.setup(config)
         state = model_module.build_model(config)
 
+        train_loader = get_dataloader(
+            batch_size=config["batch_size"],
+            rank=config["rank"],
+            world_size=config["world_size"]
+        )
+
+        train_iterator = iter(train_loader)
+
         setup_time = time.perf_counter() - setup_start
 
         print(
@@ -77,6 +85,7 @@ def run_worker(config):
 
         # ---------------- Training Loop ----------------
         for epoch in range(epochs):
+            train_loader.sampler.set_epoch(epoch)
             for step in range(steps_per_epoch):
 
                 step_config = {
@@ -84,17 +93,23 @@ def run_worker(config):
                     "current_epoch": epoch,
                     "step": step,
                 }
+                # ---------- Get next batch ----------
+                try:
+                    batch = next(train_iterator)
+                except StopIteration:
+                    train_iterator = iter(train_loader)
+                    batch = next(train_iterator)
 
                 # ---------- Compute ----------
                 start = time.perf_counter()
 
                 local_grad = model_module.train_step(
                     state,
+                    batch,
                     step_config,
                 )
 
                 compute_time = time.perf_counter() - start
-
                 loss = local_grad.get("loss", 0.0)
 
                 # ---------- Synchronization ----------

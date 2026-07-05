@@ -22,9 +22,7 @@ from metrics.summary import SummaryGenerator
 # ==========================================================
 
 ALGORITHMS = [
-    "parameter_server",
-    "ring",
-    "tree"
+    "ring"
 ]
 
 MODELS = [

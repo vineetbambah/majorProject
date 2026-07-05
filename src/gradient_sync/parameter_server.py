@@ -73,16 +73,21 @@ def _normalize_tensor_grad(grad_tensor):
 
 
 def _tensor_summary(tensor: torch.Tensor) -> str:
-    """Return a concise tensor summary."""
     flat = tensor.detach().flatten()
-    sample = flat[:min(4, flat.numel())].tolist()
-    return f"shape={tuple(tensor.shape)} dtype={tensor.dtype} sample={sample}"
+
+    return (
+        f"shape={tuple(tensor.shape)} "
+        f"dtype={tensor.dtype} "
+        f"norm={flat.norm().item():.6f} "
+        f"max={flat.abs().max().item():.6f} "
+        f"nonzero={torch.count_nonzero(flat).item()}/{flat.numel()}"
+    )
 
 
 def average(local_grad, comm_ctx, config: dict):
     """Perform parameter server based gradient aggregation."""
     grad_tensor = _normalize_tensor_grad(local_grad.get("gradients"))
-    
+
     if comm_ctx is None:
         raise ValueError("parameter_server average requires comm_ctx from parameter_server.setup")
     
