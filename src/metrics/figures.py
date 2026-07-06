@@ -25,6 +25,8 @@ BATCH_SIZES = [
     32,
     64,
     128,
+    256,
+    512,
 ]
 
 WORLD_SIZES = [

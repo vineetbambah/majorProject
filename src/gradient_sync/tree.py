@@ -48,23 +48,26 @@ def setup(config: dict) -> dict:
 
 
 def _normalize_tensor_grad(grad_tensor):
-    """Convert gradient to float32 tensor."""
+    """Return gradient as a float32 tensor."""
+
     if grad_tensor is None:
         raise ValueError("local_grad must contain a 'gradients' field")
-    
+
     if isinstance(grad_tensor, dict):
         grad_tensor = grad_tensor.get("gradients")
-    
+
     if not isinstance(grad_tensor, torch.Tensor):
-        grad_tensor = torch.as_tensor(grad_tensor, dtype=torch.float32)
-    else:
-        grad_tensor = grad_tensor.detach().clone().to(dtype=torch.float32)
-    
+        grad_tensor = torch.as_tensor(
+            grad_tensor,
+            dtype=torch.float32,
+        )
+    elif grad_tensor.dtype != torch.float32:
+        grad_tensor = grad_tensor.to(dtype=torch.float32)
+
     if grad_tensor.ndim == 0:
         grad_tensor = grad_tensor.unsqueeze(0)
-    
-    return grad_tensor
 
+    return grad_tensor
 
 def _tensor_summary(tensor: torch.Tensor) -> str:
     """Return a concise tensor summary."""
@@ -103,7 +106,7 @@ def average(local_grad, comm_ctx, config: dict):
             try:
                 left_grad = left_endpoint.recv()
                 left_tensor = _normalize_tensor_grad(left_grad)
-                accumulated = accumulated + left_tensor
+                accumulated.add_(left_tensor)
                 num_children_processed += 1
                 if log_phases:
                     print(f"[tree.average] rank={rank} reduce_from_left_child={left_child}", flush=True)
@@ -116,7 +119,7 @@ def average(local_grad, comm_ctx, config: dict):
             try:
                 right_grad = right_endpoint.recv()
                 right_tensor = _normalize_tensor_grad(right_grad)
-                accumulated = accumulated + right_tensor
+                accumulated.add_(right_tensor)
                 num_children_processed += 1
                 if log_phases:
                     print(f"[tree.average] rank={rank} reduce_from_right_child={right_child}", flush=True)

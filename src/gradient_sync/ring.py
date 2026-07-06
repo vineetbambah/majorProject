@@ -32,6 +32,8 @@ def setup(config: dict) -> dict:
 
 
 def _normalize_tensor_grad(grad_tensor):
+    """Return gradient as a float32 tensor."""
+
     if grad_tensor is None:
         raise ValueError("local_grad must contain a 'gradients' field")
 
@@ -39,9 +41,12 @@ def _normalize_tensor_grad(grad_tensor):
         grad_tensor = grad_tensor.get("gradients")
 
     if not isinstance(grad_tensor, torch.Tensor):
-        grad_tensor = torch.as_tensor(grad_tensor, dtype=torch.float32)
-    else:
-        grad_tensor = grad_tensor.detach().clone().to(dtype=torch.float32)
+        grad_tensor = torch.as_tensor(
+            grad_tensor,
+            dtype=torch.float32,
+        )
+    elif grad_tensor.dtype != torch.float32:
+        grad_tensor = grad_tensor.to(dtype=torch.float32)
 
     if grad_tensor.ndim == 0:
         grad_tensor = grad_tensor.unsqueeze(0)
@@ -86,7 +91,7 @@ def average(local_grad, comm_ctx, config: dict):
                 right_endpoint.send(send_buf)
 
             recv_tensor = _normalize_tensor_grad(recv_buf)
-            running_sum = running_sum + recv_tensor
+            running_sum.add_(recv_tensor)
             send_buf = recv_tensor
 
             if log_cycles:

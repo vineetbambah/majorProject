@@ -54,21 +54,25 @@ def setup(config: dict) -> dict:
 
 
 def _normalize_tensor_grad(grad_tensor):
-    """Convert gradient to float32 tensor."""
+    """Return gradient as a float32 tensor."""
+
     if grad_tensor is None:
         raise ValueError("local_grad must contain a 'gradients' field")
 
     if isinstance(grad_tensor, dict):
         grad_tensor = grad_tensor.get("gradients")
-    
+
     if not isinstance(grad_tensor, torch.Tensor):
-        grad_tensor = torch.as_tensor(grad_tensor, dtype=torch.float32)
-    else:
-        grad_tensor = grad_tensor.detach().clone().to(dtype=torch.float32)
-    
+        grad_tensor = torch.as_tensor(
+            grad_tensor,
+            dtype=torch.float32,
+        )
+    elif grad_tensor.dtype != torch.float32:
+        grad_tensor = grad_tensor.to(dtype=torch.float32)
+
     if grad_tensor.ndim == 0:
         grad_tensor = grad_tensor.unsqueeze(0)
-    
+
     return grad_tensor
 
 
@@ -114,7 +118,7 @@ def average(local_grad, comm_ctx, config: dict):
                 try:
                     client_grad = endpoint.recv()
                     client_tensor = _normalize_tensor_grad(client_grad)
-                    accumulated = accumulated + client_tensor
+                    accumulated.add_(client_tensor)
                     num_clients_received += 1
                     if log_steps:
                         print(f"[ps.average] rank={rank} server_recv_from_client={client_rank}", flush=True)
