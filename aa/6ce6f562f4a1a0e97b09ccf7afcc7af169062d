@@ -1,0 +1,43 @@
+src/worker_runner.py
+  s_8435ba8b5f331f::t_7a3dda369541ca 59
+  s_8435ba8b5f331f::t_1b3b5211cf4b5c 2-12,31,33-36
+  s_8435ba8b5f331f::t_f77ff79a8df267 77
+src/models/ann_small.py
+  s_8435ba8b5f331f::t_93bffd20d95887 1-99
+src/models/rnn_large.py
+  s_8435ba8b5f331f::t_5b8b9c8491acff 1-113
+src/models/cnn_large.py
+  s_8435ba8b5f331f::t_36d99dd984b946 1-93
+src/models/ann_medium.py
+  s_8435ba8b5f331f::t_1b8e3c4d602541 1-99
+src/models/rnn_small.py
+  s_8435ba8b5f331f::t_4d1828d518e338 1-113
+src/models/cnn_medium.py
+  s_8435ba8b5f331f::t_701f5f0ba8ce89 1-93
+src/models/cnn_small.py
+  s_8435ba8b5f331f::t_2ff9bc9a08973e 1-93
+src/models/ann_large.py
+  s_8435ba8b5f331f::t_6f54c87c03e902 1-99
+src/run_sweep.py
+  s_8435ba8b5f331f::t_a3b2b88f07600d 34-39
+  s_8435ba8b5f331f::t_80719f687c859a 75,78,87
+  s_8435ba8b5f331f::t_9725aab3a52f41 41,45
+src/models/rnn_medium.py
+  s_8435ba8b5f331f::t_8e14da5280665d 1-113
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "aa6ce6f562f4a1a0e97b09ccf7afcc7af169062d",
+  "prompts": {},
+  "sessions": {
+    "s_8435ba8b5f331f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7116bbeb-9ab1-433e-8b4a-df72d53c01ac",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Vineet Bambah <vbambah@entnt.in>"
+    }
+  }
+}
