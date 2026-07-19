@@ -1,0 +1,36 @@
+src/gradient_sync/parameter_server.py
+  s_6884e3a117a00b::t_234c9bf6497941 138
+  s_6884e3a117a00b::t_4e5cce8414c671 151
+  s_6884e3a117a00b::t_7c020be0a62cf2 164-169
+src/dist_launcher.py
+  s_6884e3a117a00b::t_5e91f78de61016 140
+  s_6884e3a117a00b::t_acc340935f5385 185
+  s_6884e3a117a00b::t_8c14d08c2179e5 148
+  s_6884e3a117a00b::t_0dac37dbf0c8bc 37-54,57-59,61
+  s_6884e3a117a00b::t_95e1d57544adbd 272
+  s_6884e3a117a00b::t_1097b80f078eef 5
+  s_6884e3a117a00b::t_bb86f5f7088530 9,15-16,18
+  s_6884e3a117a00b::t_c03610ac2e857f 10-14
+  s_6884e3a117a00b::t_ee433f07232f98 6
+src/gradient_sync/tree.py
+  s_6884e3a117a00b::t_e982968e325e08 135
+  s_6884e3a117a00b::t_b67bd5bd90b296 151,156
+  s_6884e3a117a00b::t_1024dc80a57045 168,173,178
+  s_6884e3a117a00b::t_c4baf4243c0b9e 184-189
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "a700ff985740455a67d71e7f5abbc37f3cb040de",
+  "prompts": {},
+  "sessions": {
+    "s_6884e3a117a00b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "06706435-c968-4d1a-8265-38bfbe0c5423",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Vineet Bambah <vbambah@entnt.in>"
+    }
+  }
+}
